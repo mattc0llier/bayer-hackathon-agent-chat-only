@@ -82,10 +82,6 @@ const models = [
   },
   // Google Models
   {
-    name: 'Gemini 2.5 Flash Lite',
-    value: 'google/gemini-2.5-flash-lite',
-  },
-  {
     name: 'Gemini 3 Pro Preview',
     value: 'google/gemini-3-pro-preview',
   },
