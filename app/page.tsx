@@ -49,13 +49,54 @@ import {
 } from '@/components/ai-elements/reasoning';
 import { Loader } from '@/components/ai-elements/loader';
 const models = [
+  // Default Model
   {
-    name: 'GPT 4o',
-    value: 'openai/gpt-4o',
+    name: 'Gemini 2.5 Flash Lite (Default)',
+    value: 'google/gemini-2.5-flash-lite',
+  },
+  // Anthropic Models
+  {
+    name: 'Claude Haiku 4.5',
+    value: 'anthropic/claude-haiku-4.5',
   },
   {
-    name: 'Deepseek R1',
-    value: 'deepseek/deepseek-r1',
+    name: 'Claude Sonnet 4.5',
+    value: 'anthropic/claude-sonnet-4.5',
+  },
+  {
+    name: 'Claude Opus 4.5',
+    value: 'anthropic/claude-opus-4.5',
+  },
+  {
+    name: 'Claude 3.7 Sonnet Thinking',
+    value: 'anthropic/claude-3.7-sonnet-thinking',
+  },
+  // OpenAI Models
+  {
+    name: 'GPT 4.1 Mini',
+    value: 'openai/gpt-4.1-mini',
+  },
+  {
+    name: 'GPT 5.2',
+    value: 'openai/gpt-5.2',
+  },
+  // Google Models
+  {
+    name: 'Gemini 2.5 Flash Lite',
+    value: 'google/gemini-2.5-flash-lite',
+  },
+  {
+    name: 'Gemini 3 Pro Preview',
+    value: 'google/gemini-3-pro-preview',
+  },
+  // xAI Models
+  {
+    name: 'Grok 4.1 Fast Non-Reasoning',
+    value: 'xai/grok-4.1-fast-non-reasoning',
+  },
+  {
+    name: 'Grok Code Fast 1 Thinking',
+    value: 'xai/grok-code-fast-1-thinking',
   },
 ];
 const ChatBotDemo = () => {
