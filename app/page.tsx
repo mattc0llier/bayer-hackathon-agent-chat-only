@@ -35,7 +35,7 @@ import {
 } from '@/components/ai-elements/prompt-input';
 import { Fragment, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react';
+import { CopyIcon, RefreshCcwIcon } from 'lucide-react';
 import {
   Source,
   Sources,
@@ -48,6 +48,13 @@ import {
   ReasoningTrigger,
 } from '@/components/ai-elements/reasoning';
 import { Loader } from '@/components/ai-elements/loader';
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool';
 const models = [
   // Default Model
   {
@@ -98,7 +105,7 @@ const models = [
 const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
-  const [webSearch, setWebSearch] = useState(false);
+  const [devMode, setDevMode] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -114,7 +121,6 @@ const ChatBotDemo = () => {
       {
         body: {
           model: model,
-          webSearch: webSearch,
         },
       },
     );
@@ -188,6 +194,22 @@ const ChatBotDemo = () => {
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
+                    case 'tool-call':
+                    case 'tool-invocation':
+                      if (!devMode) return null;
+                      return (
+                        <Tool key={`${message.id}-${i}`}>
+                          <ToolHeader
+                            title={part.toolName}
+                            type="tool-call"
+                            state="output-available"
+                          />
+                          <ToolContent>
+                            <ToolInput input={part.args} />
+                            <ToolOutput output={part.result} errorText={part.error} />
+                          </ToolContent>
+                        </Tool>
+                      );
                     default:
                       return null;
                   }
@@ -219,11 +241,11 @@ const ChatBotDemo = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
               <PromptInputButton
-                variant={webSearch ? 'default' : 'ghost'}
-                onClick={() => setWebSearch(!webSearch)}
+                variant={devMode ? 'default' : 'ghost'}
+                onClick={() => setDevMode(!devMode)}
+                size="sm"
               >
-                <GlobeIcon size={16} />
-                <span>Search</span>
+                Dev
               </PromptInputButton>
               <PromptInputSelect
                 onValueChange={(value) => {
