@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "content-sdk-nextjs-app-router": {
+      "development": {
+        "fallback": "localhost:3003"
+      }
+    },
+    "ai-chatbot": {
+      "routing": [
+        {
+          "paths": ["/components/:path*"]
+        }
+      ],
+      "development": {
+        "fallback": "localhost:3006"
+      }
+    }
+  }
+}
