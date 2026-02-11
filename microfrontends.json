@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "ai-chatbot": {
+      "routing": [
+        {
+          "paths": ["/components/chat"]
+        }
+      ]
+    }
+  }
+}
