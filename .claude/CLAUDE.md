@@ -22,6 +22,20 @@ Local Next.js documentation is available at `.claude/docs/nextjs/` for direct re
 
 ---
 
+## Remote Components Documentation
+
+When working with Vercel Remote Components (microfrontends), refer to the local documentation:
+
+- **Location**: `.claude/docs/remote-components-docs-main/`
+- **Key docs**: `.claude/docs/remote-components-docs-main/content/docs/`
+  - `getting-started/` - App Router, Pages Router, HTML setup
+  - `concepts/` - CSS isolation, lifecycle hooks, sharing modules, passing data
+  - `reference/` - FAQ, known issues
+
+Use Grep/Read to search these docs when implementing or debugging remote components.
+
+---
+
 ## Debug Feedback Loop
 
 When building features, use the dev3000 debug loop to verify changes work correctly.
