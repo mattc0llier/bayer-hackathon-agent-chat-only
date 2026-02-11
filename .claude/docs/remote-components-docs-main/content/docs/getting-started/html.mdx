@@ -1,0 +1,108 @@
+---
+title: HTML (No Framework)
+description: Learn how to use Remote Components with static HTML or non-React applications.
+---
+
+A [custom element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) can be used in cases where the host application is not a Next.js or React application.
+
+## Consuming Remote Components
+
+Import the `remote-components/html/host` module and use the `<remote-component>` custom element to consume the remote component:
+
+```jsx title="index.js"
+import 'remote-components/html/host';
+```
+
+```html title="index.html"
+<body class="flex min-h-screen flex-col">
+  <!-- Header -->
+  <remote-component src="/components/header">
+    <div class="bg-muted text-muted-foreground border-b border-b-muted">
+      <div class="container flex h-16 items-center">Loading...</div>
+    </div>
+  </remote-component>
+  ...
+</body>
+```
+
+The content within the `<remote-component>` tag will be shown as a fallback until the remote component loads.
+
+### Using with Static HTML
+
+If you have a completely static HTML page, the `remote-components/html/host` import can be loaded from [esm.sh](https://esm.sh/):
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My App</title>
+    <script src="https://esm.sh/remote-components/html/host"></script>
+  </head>
+  <body>
+    <h1>Hello from my app!</h1>
+    <remote-component src="/components/my-component"></remote-component>
+  </body>
+</html>
+```
+
+## Exposing Static HTML Remote Components
+
+You can expose remote components directly from static HTML files without using a framework. This is useful for creating standalone, framework-agnostic microfrontends.
+
+Use the `<remote-component>` custom element to define your remote components:
+
+```html
+<remote-component name="my-component">
+  <style>
+    :host p {
+      color: green;
+    }
+  </style>
+  <h2>Remote Component</h2>
+  <p>This is a remote component served from a static app.</p>
+  <button id="my-button">Click me</button>
+  <script type="module">
+    import $ from 'https://esm.sh/jquery';
+    export function mount(root) {
+      $(root)
+        .filter('#my-button')
+        .add($(root).find('#my-button'))
+        .on('click', () => {
+          alert('Button clicked!');
+        });
+      console.log('Component mounted', root);
+    }
+    export function unmount(root) {
+      console.log('Component unmounted', root);
+    }
+  </script>
+</remote-component>
+```
+
+### Key Features
+
+- **Name attribute**: Only needed when exposing multiple remote components from a single page (URL). Provide a unique `name` attribute to identify each component
+- **Scoped styles**: Use `:host` selectors in `<style>` tags to style the component's shadow root
+- **Native ESM**: Scripts must use `type="module"` to export `mount()` and `unmount()` lifecycle hooks and to import external modules from CDNs or relative paths
+- **Lifecycle hooks**: Export `mount()` and `unmount()` functions from inline `<script type="module">` tags to run code when the component is mounted or unmounted
+
+The `mount()` function receives the shadow root as an argument, allowing you to interact with the component's DOM. Multiple script blocks can be included, and each can export its own lifecycle hooks that will be called in order.
+
+### Standalone Viewing
+
+If you need to load the page directly (not consume it as a remote component), you can import `remote-components/html/remote` from a CDN like esm.sh. This is optional and only necessary for standalone viewing of the page:
+
+```html
+<script type="module">
+  import 'https://esm.sh/remote-components/html/remote';
+</script>
+```
+
+## What's Next?
+
+Now that you know how to use Remote Components with HTML, explore these concepts:
+
+- [CSS Isolation](/docs/concepts/css-isolation) - Control how CSS is scoped between host and remote
+- [Lifecycle Hooks](/docs/concepts/lifecycle-hooks) - React to component loading events

@@ -1,0 +1,60 @@
+---
+title: Introduction
+description: Build modular Next.js applications with remote components.
+---
+
+<Callout type="warning">Remote Components are currently experimental.</Callout>
+
+Remote Components are a tool to compose components from separate microfrontends in a single application at runtime, avoiding build-time coupling between applications. Remote Components are compatible with multiple frameworks and support App Router, Pages Router, React, and can be embedded in HTML (no framework) applications.
+
+## What are Remote Components?
+
+Remote Components can be exposed from an application by wrapping the content to expose via the `RemoteComponent` component:
+
+```jsx
+import { RemoteComponent } from "remote-components/next";
+
+export function Header() {
+  return (
+    <RemoteComponent>
+      <header>...</header>
+    </RemoteComponent>
+  );
+}
+```
+
+In the host application, you can consume the remote component by referencing it via a URL:
+
+```jsx
+import { RemoteComponent } from "remote-components/next";
+
+export default function HomePage() {
+  return (
+    <html>
+      <body>
+        <RemoteComponent src="/components/header" />
+        <main>...</main>
+      </body>
+    </html>
+  );
+}
+```
+
+A barebones example of how to use remote components can be found at [https://github.com/vercel-labs/remote-components-nextjs-app](https://github.com/vercel-labs/remote-components-nextjs-app).
+
+## Quick Demonstration
+
+Here is a quick demonstration of the functionality:
+
+<Video src="/Microfrontends_Remote_Components.mp4" />
+
+<Callout type="warning">
+Remote Components embed content (HTML, JS, CSS) from another application directly in your application. This is unlike iframes which have an isolation boundary between the content. Issues, such as CSS isolation, context that isn't shared, or JS APIs that don't work will come up.
+
+Remote Components is still in an experimental phase and works better when the remote component is smaller and uses fewer APIs. Please reach out to the Vercel team with any issue that you encounter while testing. Thank you!
+
+</Callout>
+
+## Getting Started
+
+Ready to start using Remote Components? Check out our [Getting Started guide](/docs/getting-started) to install the package and create your first remote component.

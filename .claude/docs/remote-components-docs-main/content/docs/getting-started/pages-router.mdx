@@ -1,0 +1,96 @@
+---
+title: Next.js Pages Router
+description: Learn how to use Remote Components with Next.js Pages Router.
+---
+
+This guide shows you how to expose and consume remote components using Next.js Pages Router.
+
+## Exposing Components
+
+You can expose any page of your Next.js Pages Router application as a Remote Component by using the `remote-components` package by extending the page props with the `getRemoteComponentMetadata` helper function:
+
+```tsx title="pages/_app.tsx"
+import '@/styles/globals.css';
+import {
+  getRemoteComponentMetadata,
+  type RemoteComponentMetadata,
+} from 'remote-components/next/remote/pages-router';
+import App from 'next/app';
+import type { AppContext, AppInitialProps, AppProps } from 'next/app';
+
+export default function MyApp({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+
+MyApp.getInitialProps = async (
+  context: AppContext,
+): Promise<RemoteComponentMetadata & AppInitialProps> => {
+  const ctx = await App.getInitialProps(context);
+  return { ...ctx, ...getRemoteComponentMetadata() };
+};
+```
+
+This setup tells the framework that pages in your application can be exposed as remote components.
+
+## Consuming Remote Components
+
+You need to fetch the Remote Components in a `getServerSideProps` function in your Next.js Pages Router application, then you can pass the Remote Component props to your page and to a `RemoteComponent` component:
+
+```tsx title="pages/index.tsx"
+import {
+  RemoteComponent,
+  getRemoteComponentProps,
+  type RemoteComponentProps,
+} from 'remote-components/next/host/pages-router';
+import type { GetServerSideProps } from 'next';
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async ({
+  req,
+}) => {
+  const myComponent = await getRemoteComponentProps(
+    '/components/my-component',
+    req.headers,
+  );
+
+  return {
+    props: {
+      remoteComponents: {
+        myComponent,
+      },
+    },
+  };
+};
+
+interface PageProps {
+  remoteComponents: {
+    myComponent: RemoteComponentProps;
+  };
+}
+
+export default function Page({
+  remoteComponents,
+}: PageProps) {
+  return (
+    <>
+      <h1>Hello from my app!</h1>
+      <RemoteComponent {...remoteComponents.myComponent} />
+    </>
+  );
+}
+```
+
+## Key Differences from App Router
+
+When using Pages Router:
+
+1. **Exposing**: Requires setup in `_app.tsx` with `getRemoteComponentMetadata()`
+2. **Consuming**: Remote components must be fetched in `getServerSideProps` using `getRemoteComponentProps()`
+3. **Props**: Remote component props must be spread into the `<RemoteComponent>` component
+
+## What's Next?
+
+Now that you know how to use Remote Components with Pages Router, explore these concepts:
+
+- [CSS Isolation](/docs/concepts/css-isolation) - Control how CSS is scoped between host and remote
+- [Lifecycle Hooks](/docs/concepts/lifecycle-hooks) - React to component loading events
+- [Sharing Modules](/docs/concepts/sharing-modules) - Share React context and other modules between host and remote

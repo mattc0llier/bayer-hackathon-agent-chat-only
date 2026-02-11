@@ -1,0 +1,168 @@
+---
+title: CORS & External URLs
+description: Learn how to consume remote components from external domains.
+---
+
+import { Image } from "@/components/docs/image";
+
+Remote Components can load components from relative paths or absolute URLs. If the component comes from a different domain, CORS support must be added.
+
+## Adding CORS Support
+
+In the **remote** application, add the `remote-components` `middleware` in the `middleware.ts` file:
+
+```jsx title="middleware.ts"
+import {
+  withRemoteComponents,
+  config,
+} from "remote-components/next/middleware";
+
+const middleware = withRemoteComponents();
+export { middleware, config };
+```
+
+This middleware automatically adds the necessary CORS headers to allow your remote components to be consumed from external domains.
+
+## Using Absolute URLs
+
+Once CORS is configured, you can consume remote components using absolute URLs:
+
+```jsx
+<RemoteComponent src="https://components.example.com/header" />
+```
+
+## Skew Protection
+
+If you have [Skew Protection](https://vercel.com/docs/skew-protection) enabled on your remote component's project, you can configure the **Allowed Domains for Cross-Site Fetch** setting to allow the host application to fetch the remote component.
+
+1. Go to your remote component project's **Settings** in the Vercel dashboard
+2. Navigate to **Advanced**
+3. Find **Allowed Domains for Cross-Site Fetch**
+4. Add your host application's domain(s)
+
+## Deployment Protection
+
+If [Deployment Protection](https://vercel.com/docs/deployment-protection) is enabled on your remote's preview deployments, the host must include the bypass secret to fetch remote components.
+
+When fetching a remote component, the host passes its `VERCEL_AUTOMATION_BYPASS_SECRET` to the remote. For the remote to accept this secret, add the host's bypass secret to the remote's allowed secrets so the remote app contains the same `VERCEL_AUTOMATION_BYPASS_SECRET` value.
+
+To configure:
+
+1. Go to **Settings > Deployment Protection** in the host project
+2. Under **Protection Bypass for Automation**, copy the bypass secret
+3. Add this secret to the remote project's **Protection Bypass for Automation** (the remote can have additional secrets)
+
+<Image
+  src="/light/deployment-protection.png"
+  srcDark="/dark/deployment-protection.png"
+  alt="Protection Bypass for Automation"
+  width={1200}
+  height={400}
+/>
+
+The Remote Components middleware automatically includes the bypass secret when fetching from protected deployments from the server.
+
+### Accessing Cross-Site Protected Remote Components
+
+<Callout type="info">
+  This setup is only needed for non-[Vercel
+  Microfrontends](https://vercel.com/docs/microfrontends) configurations where
+  the host and remote are on different domains. With Vercel Microfrontends, the
+  host and remote share the same domain, so deployment protection cookies work
+  automatically.
+</Callout>
+
+When accessing protected remote component deployments from a different domain (such as preview deployments), [Deployment Protection](https://vercel.com/docs/deployment-protection) authentication cookies cannot be sent cross-domain, even with CORS properly configured.
+
+This creates a fundamental challenge:
+
+- **Cookies don't cross domains**: Browsers prevent cookies from one domain from being sent to another domain for security reasons. The client's authentication cookies for the host domain cannot be used to authenticate to the remote domain.
+- **Secrets can't be exposed to the client**: The `VERCEL_AUTOMATION_BYPASS_SECRET` cannot be sent directly from the client, as this would expose the secret in the browser.
+
+To solve this, Remote Components provides a proxy fallback that routes requests through the host application, allowing the automation bypass header to be used securely on the server side instead of relying on cross-domain cookies.
+
+<Callout type="warning">
+  This setup is only needed for **preview** remote component deployments.
+  Production remote components should not be protected with deployment
+  protection, as they need to be publicly accessible to host applications.
+</Callout>
+
+#### Next.js Setup
+
+Add `withRemoteComponentsHost` middleware to your host application:
+
+```tsx title="middleware.ts"
+import { withRemoteComponentsHost } from "remote-components/next/proxy";
+
+const middleware = withRemoteComponentsHost();
+
+export { middleware };
+
+export const config = {
+  matcher: "/rc-fetch-protected-remote",
+};
+```
+
+**Important**: For SSRF protection, you must specify which remote URLs can be proxied through the host. Configure this either:
+
+- Using the `allowedProxyUrls` option with an array of regex patterns
+- Or via the `REMOTE_COMPONENTS_ALLOWED_PROXY_URLS` environment variable (comma-separated regex patterns)
+
+If neither is configured, proxy requests will be rejected with a 403 error.
+
+This middleware enables the proxy fallback for accessing protected remote component previews. When a direct CORS request fails due to deployment protection, the request is automatically proxied through the host.
+
+#### Other Frameworks
+
+For other frameworks, you can use `handleProtectedRemoteFetchRequest` directly in your request handler:
+
+```ts
+import { handleProtectedRemoteFetchRequest } from "remote-components/shared/host/proxy";
+
+// In your request handler
+const response = await handleProtectedRemoteFetchRequest(request.url);
+
+if (response) {
+  return response;
+}
+```
+
+#### How It Works
+
+1. The host application attempts to fetch the remote component directly using CORS
+2. If the request fails due to deployment protection (missing authentication cookies), a fallback is triggered
+3. The request is proxied through the host application, which includes the `VERCEL_AUTOMATION_BYPASS_SECRET` header
+4. The remote application validates the bypass secret and serves the component
+
+This fallback is specifically designed for preview deployments and ensures seamless access to protected remote components during development and testing.
+
+## Cross-Domain Considerations
+
+When loading components from external URLs, keep in mind:
+
+### Security
+
+- Only load components from trusted sources
+- Verify the origin of external components
+- Consider implementing additional security measures like CSP (Content Security Policy)
+
+### Performance
+
+- Cross-domain requests may have additional latency
+- Consider using a CDN for remote components
+- Implement appropriate caching strategies
+
+### Reliability
+
+- External domains must be available for your application to function
+- Consider fallback strategies for when external components are unavailable
+- Monitor the availability of external component sources
+
+## Testing with Different Domains
+
+When testing remote components from different domains:
+
+1. Use the Vercel Microfrontends [routing overrides](https://vercel.com/docs/microfrontends/managing-microfrontends/vercel-toolbar#routing-overrides)
+2. Test in local development with proxy configurations
+3. Verify CORS headers are properly set in all environments
+4. Test with browser DevTools to inspect network requests and headers

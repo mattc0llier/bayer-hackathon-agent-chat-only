@@ -1,0 +1,55 @@
+---
+title: Known Issues
+description: Known limitations and issues with Remote Components.
+---
+
+<Callout type="warning">
+Remote Components are currently experimental. The following known issues are being actively worked on.
+</Callout>
+
+## Navigation Issues
+
+### Links from remote components
+
+Links from the remote component may not have soft nav/hard nav/prefetching work correctly. The remote component doesn't know the context of the host and which links are part of the same or different application.
+
+## React Server Functions
+
+No support for [React server functions](https://react.dev/reference/rsc/server-functions) yet.
+
+## Build Tools
+
+### Turbopack Support
+
+Turbopack is only supported when using the Next.js App Router.
+
+## Development Experience
+
+### Error Propagation
+
+Errors rendering the remote in local development are not propagated to the Next.js dev overlay of the host application.
+
+**Workaround**: Make sure to check that the remote component works standalone and check the terminal for more logs.
+
+### Hot Module Replacement (HMR)
+
+There may be some issues with HMR not refreshing correctly for the remote component.
+
+**Workaround**: Manually refresh the page when making changes to remote components during development.
+
+## Reporting Issues
+
+If you encounter any issues or bugs with Remote Components:
+
+1. Check if it's a known issue listed above
+2. Verify your configuration matches the documentation
+3. Test the remote component in isolation
+4. Report new issues to the Vercel team with:
+   - Detailed reproduction steps
+   - Framework versions (Next.js, React, etc.)
+   - Example code demonstrating the issue
+   - Expected vs actual behavior
+
+<Callout>
+Thank you for testing Remote Components and helping us improve the product!
+</Callout>

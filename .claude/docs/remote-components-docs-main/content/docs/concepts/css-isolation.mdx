@@ -1,0 +1,60 @@
+---
+title: CSS Isolation
+description: Learn how to control CSS scoping between host and remote components.
+---
+
+import { CSSIsolationDemoWrapper } from "@/components/docs/css-isolation-demo-wrapper";
+
+By default, Remote Components are rendered within a [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM) boundary, isolating the CSS from the remote component from the host application.
+
+<CSSIsolationDemoWrapper />
+
+## Disabling CSS Isolation
+
+If you want to disable CSS isolation, you can pass `isolate={false}` to the `RemoteComponent`:
+
+```jsx
+<RemoteComponent isolate={false} src="/components/header" />
+```
+
+When disabled, the remote component HTML will be inserted directly in the main document HTML. CSS will also be loaded in the main document. This may cause conflicts between CSS from the remote and CSS from the host. If that happens, it is up to the developer to ensure there are no conflicts, such as obfuscating CSS uniquely or using [Tailwind CSS prefixes](https://v2.tailwindcss.com/docs/configuration#prefix).
+
+## Shadow DOM Modes
+
+You can specify the mode in which the Shadow DOM is created. By default, it is set to "open", but you can change it to "closed" by adding the `mode` attribute.
+
+### React Components
+
+When using the React `<RemoteComponent>` component, you can specify the `mode` prop:
+
+```jsx
+<RemoteComponent mode="closed" src="/components/header" />
+```
+
+### HTML Custom Elements
+
+When using the `<remote-component>` custom element, add the `mode` attribute:
+
+```html
+<remote-component mode="closed" src="/components/header"></remote-component>
+```
+
+## Resetting CSS Styles
+
+To reset all CSS styles within the Shadow DOM, you can add the `reset` attribute to the `<remote-component>` element. This will inject a set of CSS rules that reset common styles, ensuring that the styles from the host page do not leak into the remote component.
+
+### React Components
+
+```jsx
+<RemoteComponent reset src="/components/header" />
+```
+
+### HTML Custom Elements
+
+```html
+<remote-component reset src="/components/header"></remote-component>
+```
+
+## Tailwind CSS Considerations
+
+Tailwind CSS by default only applies CSS variable definitions on `:root`, while Shadow DOM needs them applied to `:host` also. You may need to adjust your Tailwind configuration to ensure proper styling within Shadow DOM.

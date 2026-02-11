@@ -1,0 +1,72 @@
+---
+title: Suspense & Fallback
+description: Learn how to show fallback content while remote components load.
+---
+
+Remote components are fetched asynchronously. When the host page is rendering, you may want to place a Suspense or fallback to render until the remote component streams in.
+
+## Using Fallback Content
+
+You can place fallback content as a child of the `RemoteComponent` to render while the component loads:
+
+```jsx
+<RemoteComponent src="/components/header">
+  <div className="w-24 h-10 rounded-md bg-muted animate-pulse" />
+</RemoteComponent>
+```
+
+The fallback content will be displayed until the remote component is fully loaded and ready to render.
+
+## Preventing Layout Shift
+
+To avoid layout shift, make sure the fallback has the same width and height as the rendered content. You may also use Skeleton elements to show some placeholder visual content until the main content loads.
+
+### Example with Skeleton
+
+```jsx
+<RemoteComponent src="/components/header">
+  <div className="flex items-center space-x-4">
+    <div className="h-12 w-12 rounded-full bg-gray-200 animate-pulse" />
+    <div className="space-y-2">
+      <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+      <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+    </div>
+  </div>
+</RemoteComponent>
+```
+
+## HTML Custom Elements
+
+When using the `<remote-component>` custom element, the content within the tag serves as the fallback:
+
+```html
+<remote-component src="/components/header">
+  <div class="bg-muted text-muted-foreground border-b border-b-muted">
+    <div class="container flex h-16 items-center">Loading...</div>
+  </div>
+</remote-component>
+```
+
+## Best Practices
+
+1. **Match dimensions**: Ensure your fallback matches the expected dimensions of the loaded component
+2. **Provide context**: Use skeleton screens or loading indicators that give users context about what's loading
+3. **Avoid empty states**: Always provide some visual feedback during loading
+4. **Consider accessibility**: Include appropriate ARIA labels for loading states
+
+## Combining with Lifecycle Hooks
+
+You can combine fallback content with lifecycle hooks for more sophisticated loading experiences:
+
+```jsx
+const [isLoading, setIsLoading] = useState(true);
+
+<RemoteComponent
+  src="/components/header"
+  onBeforeLoad={() => setIsLoading(true)}
+  onLoad={() => setIsLoading(false)}
+  onError={() => setIsLoading(false)}
+>
+  {isLoading && <div className="loading-skeleton" />}
+</RemoteComponent>
+```

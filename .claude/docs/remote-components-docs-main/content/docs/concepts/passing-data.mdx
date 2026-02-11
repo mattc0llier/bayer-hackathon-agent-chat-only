@@ -1,0 +1,38 @@
+---
+title: Passing Data
+description: Learn how to pass data between the host and remote components
+---
+
+Data sharing between the host application and remote component is a common need for microfrontends.
+
+## Passing Data via Query Parameters
+
+Props can be passed from the host application to the remote by serializing them into query parameters in the URL. The remote component would then pull the data from the query parameters:
+
+```jsx
+// Host
+<RemoteComponent src="/components/header?userName=John&theme=dark" />
+```
+
+```jsx
+// Remote (App Router)
+export default function Header({
+  searchParams,
+}: {
+  searchParams: { userName?: string, theme?: string },
+}) {
+  return (
+    <RemoteComponent>
+      <header data-theme={searchParams.theme}>
+        Welcome, {searchParams.userName}
+      </header>
+    </RemoteComponent>
+  );
+}
+```
+
+## Sharing React Context
+
+[React Context](https://react.dev/learn/passing-data-deeply-with-context) can be used to share data by leveraging the [sharing modules](/docs/concepts/sharing-modules) feature of Remote Components. The host exposes the data inside the React context, and the remote can use that context to retrieve the same data.
+
+Learn more in the [Sharing Modules](/docs/concepts/sharing-modules) documentation.

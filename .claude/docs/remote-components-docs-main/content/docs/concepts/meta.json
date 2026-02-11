@@ -1,0 +1,12 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "css-isolation",
+    "lifecycle-hooks",
+    "suspense-fallback",
+    "sharing-modules",
+    "passing-data",
+    "cors-external-urls",
+    "isr-deployment"
+  ]
+}

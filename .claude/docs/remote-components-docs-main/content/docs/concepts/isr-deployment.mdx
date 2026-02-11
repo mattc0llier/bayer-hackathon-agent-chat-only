@@ -1,0 +1,48 @@
+---
+title: Deploying Next.js ISR Applications
+description: Learn how to keep ISR content fresh when deploying remote components independently.
+---
+
+When using [Incremental Static Regeneration (ISR)](https://vercel.com/docs/incremental-static-regeneration) with Remote Components, the host's ISR cache may contain a snapshot of the remote's UI from an earlier deployment. If the remote deploys independently, the host continues serving its cached version until the next revalidation window, resulting in stale UI.
+
+## App Router on Vercel
+
+When using the Next.js App Router with [Vercel Microfrontends](https://vercel.com/docs/microfrontends), Remote Components automatically tag their fetch calls. Vercel detects when a remote redeploys and triggers revalidation on the host automatically. No manual configuration required.
+
+### App Router without Microfrontends
+
+Without Vercel Microfrontends, manually trigger revalidation using [`revalidateTag()`](https://nextjs.org/docs/app/api-reference/functions/revalidateTag). Remote Components are tagged with:
+
+| Tag | Scope | Truncation |
+|-----|-------|------------|
+| `_vc_rc:fetch-remote-component` | All remote components | None |
+| Remote host | All components from that host | First 256 chars |
+| `src` prop | Specific component by URL | Last 256 chars |
+| `name` prop | Specific component by name | Last 256 chars |
+
+Call `revalidateTag('_vc_rc:fetch-remote-component')` to revalidate all, or use a more specific tag for granular control.
+
+## Pages Router
+
+The Pages Router does not support fetch tagging. You must create a custom API route to handle on-demand revalidation. See the [On-Demand Revalidation guide](https://vercel.com/docs/incremental-static-regeneration/quickstart#on-demand-revalidation) for implementation details.
+
+To trigger this endpoint after a remote deploys, add a post-deploy script or webhook in your CI/CD pipeline that calls the host's revalidation endpoint.
+
+### Environment Isolation
+
+On-demand revalidation is scoped to the domain and deployment where it occurs. Do not cross-trigger between preview and production:
+
+- Production remote deploys should only trigger revalidation on the production host
+- Preview remote deploys should only trigger revalidation on the corresponding preview host
+
+The [system environment variable](https://vercel.com/docs/environment-variables/system-environment-variables) `VERCEL_ENV` returns `production`, `preview`, or `development`. Use this to conditionally set your host revalidation URL. Store secrets in [environment variables](https://vercel.com/docs/environment-variables) and never commit them to source control.
+
+## Non-Vercel Deployments
+
+If you're not using Vercel Microfrontends, ensure your hosting platform supports Next.js ISR, then trigger on-demand revalidation after each remote deploy or redeploy the host application.
+
+## Related Docs
+
+- [Vercel Microfrontends](https://vercel.com/docs/microfrontends)
+- [ISR Quickstart](https://vercel.com/docs/incremental-static-regeneration/quickstart)
+- [Path Routing](https://vercel.com/docs/microfrontends/path-routing)

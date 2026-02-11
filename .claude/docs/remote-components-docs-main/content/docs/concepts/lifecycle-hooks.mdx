@@ -1,0 +1,589 @@
+---
+title: Lifecycle Hooks
+description: Learn how to respond to remote component loading events.
+---
+
+Remote Components provide lifecycle hooks that allow you to respond to various stages of the component loading process. These hooks are available for both React components and HTML custom elements.
+
+## React Components
+
+When using the React `<RemoteComponent>` component, you can pass callback props to handle lifecycle events:
+
+```tsx
+<RemoteComponent
+  src="/components/header"
+  onBeforeLoad={(src) => {
+    console.log("Starting to load:", src);
+  }}
+  onRequest={(url, init) => {
+    // Modify request headers
+    (init.headers as Headers).set("X-Custom-Header", "my-value");
+  }}
+  onResponse={(url, response) => {
+    // Inspect response details
+    console.log("Response status:", response.status);
+    if (response.redirected) {
+      console.log(`Redirected from ${url.href} to ${response.url}`);
+    }
+  }}
+  onLoad={(src) => {
+    console.log("Successfully loaded:", src);
+  }}
+  onError={(error) => {
+    console.error("Failed to load:", error);
+  }}
+  onChange={({ previousSrc, nextSrc, previousName, nextName }) => {
+    console.log("Component changed from", previousSrc, "to", nextSrc);
+  }}
+/>
+```
+
+### Available Hooks
+
+- **`onBeforeLoad`**: Called right before a new remote component load starts. Receives the `src` URL as an argument.
+- **`onRequest`**: Called before the fetch request is sent. Receives the `url` (URL) and `init` (RequestInit) objects. Can modify headers via `init.headers`, or return a `Response` to skip the fetch entirely.
+- **`onResponse`**: Called after the fetch response is received. Receives the `url` (URL) and `response` (Response) objects. Can be used to inspect the response (e.g., check for redirects) or return a transformed `Response`.
+- **`onLoad`**: Called when the remote component has been successfully loaded and mounted. Receives the `src` URL as an argument.
+- **`onError`**: Called when an error occurs while loading or mounting the remote component. Receives the error as an argument.
+- **`onChange`**: Called when a different remote component is loaded into the same wrapper (not on first load). Receives an object with `previousSrc`, `nextSrc`, `previousName`, and `nextName` properties.
+
+### Lifecycle Hook Examples
+
+#### Loading States
+
+Use `onBeforeLoad` and `onLoad` together to manage loading indicators. Wrap the component and conditionally render a spinner alongside it:
+
+```tsx
+function DashboardWithLoading() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Spinner />
+        </div>
+      )}
+      <RemoteComponent
+        src="/components/dashboard"
+        onBeforeLoad={() => setIsLoading(true)}
+        onLoad={() => setIsLoading(false)}
+        onError={() => setIsLoading(false)}
+      />
+    </div>
+  );
+}
+```
+
+Alternatively, use CSS to show fallback content that gets replaced when the component loads:
+
+```tsx
+<RemoteComponent
+  src="/components/dashboard"
+  onBeforeLoad={() => console.log("Loading...")}
+  onLoad={() => console.log("Loaded!")}
+>
+  {/* This content shows until the remote component loads */}
+  <div className="skeleton-loader">Loading dashboard...</div>
+</RemoteComponent>
+```
+
+#### Error Handling with Retry
+
+The `onError` hook receives the error that occurred during loading. You can use this to display error messages, log to monitoring services, or trigger retry logic:
+
+```tsx
+export default function ErrorHandling() {
+  const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  return (
+    <>
+      <RemoteComponent
+        key={retryCount} // Force remount on retry
+        src="/components/widget"
+        onError={(err) => {
+          setError(err as Error);
+          console.error("Failed to load component:", err);
+          // Report to error tracking service
+          errorTracker.capture(err);
+        }}
+        onLoad={() => setError(null)}
+      />
+      {error && (
+        <div>
+          <p>Failed to load: {error.message}</p>
+          <button onClick={() => setRetryCount((c) => c + 1)}>Retry</button>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+#### Tracking Component Changes
+
+When the `src` prop changes, `onChange` is called with information about both the previous and new component. This is useful for analytics or cleanup logic:
+
+```tsx
+<RemoteComponent
+  src={currentComponent}
+  onChange={({ previousSrc, nextSrc, previousName, nextName }) => {
+    // Track component switches in analytics
+    analytics.track("component_changed", {
+      from: previousSrc,
+      to: nextSrc,
+      fromName: previousName,
+      toName: nextName,
+    });
+  }}
+/>
+```
+
+#### Performance Monitoring
+
+Combine lifecycle hooks to measure how long remote components take to load. This data can help identify slow components or network issues:
+
+```tsx
+const loadStartRef = useRef<number>(0);
+
+<RemoteComponent
+  src="/components/heavy-widget"
+  onBeforeLoad={(src) => {
+    loadStartRef.current = performance.now();
+    console.log("Starting to load:", src);
+  }}
+  onLoad={(src) => {
+    const loadTime = performance.now() - loadStartRef.current;
+    console.log(`Loaded ${src} in ${loadTime.toFixed(2)}ms`);
+    // Send to performance monitoring
+    metrics.timing("remote_component_load", loadTime, { src });
+  }}
+  onError={(error) => {
+    const loadTime = performance.now() - loadStartRef.current;
+    metrics.timing("remote_component_error", loadTime, {
+      error: error.message,
+    });
+  }}
+/>;
+```
+
+### Request/Response Interceptors
+
+The `onRequest` and `onResponse` hooks allow you to intercept and modify the fetch request and response. This is useful for:
+
+- **Adding authentication headers**: Inject tokens or API keys into requests
+- **Providing cached responses**: Return a cached `Response` from `onRequest` to skip the network request
+- **Detecting redirects**: Check `response.redirected` and `response.url` in `onResponse`
+- **Response transformation**: Modify or replace the response before processing
+- **Performance monitoring**: Track request/response timing
+
+#### Next.js App Router (Server Components)
+
+In Next.js App Router, `RemoteComponent` is a server component that fetches the remote component during server-side rendering. The `onRequest` and `onResponse` hooks run on the server, making them ideal for adding server-side authentication or logging:
+
+```tsx
+// app/dashboard/page.tsx
+import { cookies } from "next/headers";
+import { RemoteComponent } from "remote-components/next/host/app";
+
+export default async function DashboardPage() {
+  return (
+    <RemoteComponent
+      src="/components/dashboard-widget"
+      onRequest={async (url, init) => {
+        // Access server-side cookies for authentication
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("session")?.value;
+
+        if (sessionToken) {
+          (init.headers as Headers).set(
+            "Authorization",
+            `Bearer ${sessionToken}`,
+          );
+        }
+
+        // Add server-side tracing headers
+        (init.headers as Headers).set("X-Request-ID", crypto.randomUUID());
+      }}
+      onResponse={async (url, response) => {
+        // Log on the server for debugging
+        console.log(`[SSR] Fetched ${url.href} - Status: ${response.status}`);
+
+        if (!response.ok) {
+          console.error(
+            `[SSR] Failed to fetch remote component: ${response.statusText}`,
+          );
+        }
+      }}
+    />
+  );
+}
+```
+
+Since the hooks run during SSR, you can access server-only APIs like `cookies()`, `headers()`, or environment variables that aren't exposed to the client.
+
+#### Adding Authentication (Client Components)
+
+When loading remote components from protected endpoints, you may need to include authentication credentials. The `onRequest` hook lets you inject authorization headers before the fetch is made:
+
+```tsx
+<RemoteComponent
+  src="/components/protected-widget"
+  onRequest={(url, init) => {
+    const token = getAuthToken();
+    (init.headers as Headers).set("Authorization", `Bearer ${token}`);
+  }}
+/>
+```
+
+#### Providing a Cached Response
+
+For performance optimization, you can implement client-side caching by returning a cached `Response` from `onRequest`. When you return a `Response`, the network fetch is skipped entirely:
+
+```tsx
+<RemoteComponent
+  src="/components/widget"
+  onRequest={(url, init) => {
+    const cached = cache.get(url.href);
+    if (cached) {
+      // Return a Response to skip the fetch
+      return new Response(cached);
+    }
+  }}
+/>
+```
+
+#### Detecting Redirects
+
+Remote component URLs may redirect (e.g., for A/B testing or versioning). Use `onResponse` to detect when the server redirected to a different URL than requested:
+
+```tsx
+<RemoteComponent
+  src="/components/dashboard"
+  onResponse={(url, response) => {
+    if (response.redirected) {
+      console.log(`Redirected from ${url.href} to ${response.url}`);
+    }
+  }}
+/>
+```
+
+#### Caching Responses
+
+To build a client-side cache, clone the response in `onResponse` and store it for future requests. Remember to clone the response since the body can only be read once:
+
+```tsx
+<RemoteComponent
+  src="/components/widget"
+  onResponse={async (url, response) => {
+    // Clone and cache the response
+    const cloned = response.clone();
+    cache.set(url.href, await cloned.text());
+  }}
+/>
+```
+
+#### Transforming Responses
+
+In advanced scenarios, you may need to modify the component HTML before it's rendered. Return a new `Response` from `onResponse` to replace the original:
+
+```tsx
+<RemoteComponent
+  src="/components/feature"
+  onResponse={async (url, response) => {
+    const text = await response.text();
+    const modified = text.replace(/foo/g, "bar");
+    return new Response(modified, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  }}
+/>
+```
+
+## HTML Custom Elements
+
+When using the `<remote-component>` custom element, you can listen for DOM events for lifecycle notifications:
+
+```html
+<remote-component id="my-component" src="/components/header"></remote-component>
+
+<script>
+  const component = document.getElementById("my-component");
+
+  component.addEventListener("beforeload", (event) => {
+    console.log("Starting to load:", event.src);
+  });
+
+  component.addEventListener("load", (event) => {
+    console.log("Successfully loaded:", event.src);
+  });
+
+  component.addEventListener("error", (event) => {
+    console.error("Failed to load:", event.error);
+  });
+
+  component.addEventListener("change", (event) => {
+    console.log(
+      "Component changed from",
+      event.previousSrc,
+      "to",
+      event.nextSrc,
+    );
+  });
+</script>
+```
+
+### Available Events
+
+- **`beforeload`**: Dispatched right before loading starts. The event object contains `src`.
+- **`load`**: Dispatched when loading completes successfully. The event object contains `src`.
+- **`error`**: Dispatched when an error occurs. The event object contains `error` and `src`.
+- **`change`**: Dispatched when the component source changes (not on first load). The event object contains `previousSrc`, `nextSrc`, `previousName`, and `nextName`.
+
+All events bubble and are composed, allowing them to cross shadow DOM boundaries.
+
+### Lifecycle Event Examples
+
+#### Loading Indicator
+
+Show a loading spinner while the component loads using the `beforeload` and `load` events. The events bubble, so you can listen on a parent element:
+
+```html
+<div id="container">
+  <remote-component id="widget" src="/components/dashboard">
+    <div class="spinner">Loading...</div>
+  </remote-component>
+</div>
+
+<script>
+  const widget = document.getElementById("widget");
+  const spinner = widget.querySelector(".spinner");
+
+  widget.addEventListener("beforeload", () => {
+    spinner.style.display = "block";
+  });
+
+  widget.addEventListener("load", () => {
+    spinner.style.display = "none";
+  });
+
+  widget.addEventListener("error", () => {
+    spinner.textContent = "Failed to load";
+  });
+</script>
+```
+
+#### Error Handling with Fallback UI
+
+Display a user-friendly error message when the component fails to load. You can access the error details via `event.error`:
+
+```html
+<remote-component id="feature" src="/components/feature">
+  <div class="placeholder">Loading feature...</div>
+</remote-component>
+<div id="error-message" style="display: none;">
+  <p>Something went wrong.</p>
+  <button id="retry-btn">Try Again</button>
+</div>
+
+<script>
+  const feature = document.getElementById("feature");
+  const errorMessage = document.getElementById("error-message");
+  const retryBtn = document.getElementById("retry-btn");
+
+  feature.addEventListener("error", (event) => {
+    console.error("Component error:", event.error);
+    errorMessage.style.display = "block";
+  });
+
+  feature.addEventListener("load", () => {
+    errorMessage.style.display = "none";
+  });
+
+  retryBtn.addEventListener("click", () => {
+    // Re-trigger load by resetting the src
+    const src = feature.getAttribute("src");
+    feature.removeAttribute("src");
+    requestAnimationFrame(() => feature.setAttribute("src", src));
+  });
+</script>
+```
+
+#### Analytics Tracking
+
+Track component load times and changes for performance monitoring and user behavior analytics:
+
+```html
+<remote-component id="tracked" src="/components/widget"></remote-component>
+
+<script>
+  const tracked = document.getElementById("tracked");
+  let loadStartTime;
+
+  tracked.addEventListener("beforeload", (event) => {
+    loadStartTime = performance.now();
+    analytics.track("component_load_started", { src: event.src });
+  });
+
+  tracked.addEventListener("load", (event) => {
+    const loadTime = performance.now() - loadStartTime;
+    analytics.track("component_loaded", {
+      src: event.src,
+      duration: loadTime,
+    });
+  });
+
+  tracked.addEventListener("error", (event) => {
+    analytics.track("component_error", {
+      src: event.src,
+      error: event.error?.message,
+    });
+  });
+
+  tracked.addEventListener("change", (event) => {
+    analytics.track("component_changed", {
+      from: event.previousSrc,
+      to: event.nextSrc,
+    });
+  });
+</script>
+```
+
+#### Dynamic Component Switching
+
+Handle component transitions gracefully when the source changes dynamically:
+
+```html
+<div class="component-picker">
+  <button data-src="/components/chart">Chart</button>
+  <button data-src="/components/table">Table</button>
+  <button data-src="/components/map">Map</button>
+</div>
+
+<remote-component id="dynamic" src="/components/chart"></remote-component>
+
+<script>
+  const dynamic = document.getElementById("dynamic");
+  const buttons = document.querySelectorAll(".component-picker button");
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      dynamic.setAttribute("src", button.dataset.src);
+    });
+  });
+
+  dynamic.addEventListener("change", (event) => {
+    console.log(
+      `Switched from ${event.previousName || "initial"} to ${event.nextName}`,
+    );
+    // Update active button state
+    buttons.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.src === event.nextSrc);
+    });
+  });
+</script>
+```
+
+### Request/Response Properties
+
+For intercepting fetch requests and responses, set the `onRequest` and `onResponse` properties directly on the element. Unlike the lifecycle events above, these are function properties (not event listeners) that mirror the React component's hook behavior:
+
+```html
+<remote-component id="my-component" src="/components/header"></remote-component>
+
+<script>
+  const component = document.getElementById("my-component");
+
+  // Called before the fetch - can modify headers or return a cached Response
+  component.onRequest = (url, init) => {
+    console.log("Fetching:", url.href);
+    init.headers.set("X-Custom-Header", "my-value");
+  };
+
+  // Called after the fetch - can inspect or transform the response
+  component.onResponse = (url, response) => {
+    console.log("Response status:", response.status);
+    if (response.redirected) {
+      console.log(`Redirected to ${response.url}`);
+    }
+  };
+</script>
+```
+
+### Request/Response Examples
+
+#### Adding Authentication Headers
+
+When your remote components require authentication, set the `onRequest` property to inject the authorization token. This is useful for components hosted on protected endpoints:
+
+```html
+<remote-component
+  id="protected"
+  src="/components/protected-widget"
+></remote-component>
+
+<script>
+  const component = document.getElementById("protected");
+
+  component.onRequest = (url, init) => {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      init.headers.set("Authorization", `Bearer ${token}`);
+    }
+  };
+</script>
+```
+
+#### Providing a Cached Response
+
+Improve performance by caching component HTML in `sessionStorage` or a custom cache. When `onRequest` returns a `Response`, the network fetch is bypassed entirely:
+
+```html
+<remote-component id="cached" src="/components/widget"></remote-component>
+
+<script>
+  const component = document.getElementById("cached");
+
+  component.onRequest = (url, init) => {
+    const cached = sessionStorage.getItem(url.href);
+    if (cached) {
+      // Return a Response to skip the network request
+      return new Response(cached);
+    }
+  };
+</script>
+```
+
+#### Detecting Redirects
+
+Track when components are served from different URLs than requested. This is helpful for debugging, analytics, or handling versioned component URLs:
+
+```html
+<remote-component id="monitored" src="/components/dashboard"></remote-component>
+
+<script>
+  const component = document.getElementById("monitored");
+
+  component.onResponse = (url, response) => {
+    if (response.redirected) {
+      console.log(`Redirected from ${url.href} to ${response.url}`);
+    }
+  };
+</script>
+```
+
+## Use Cases
+
+Lifecycle hooks are useful for:
+
+- **Loading indicators**: Show spinners or skeleton screens during component loading
+- **Error handling**: Display fallback UI when components fail to load
+- **Analytics**: Track component loading performance and errors
+- **State management**: Update application state based on component lifecycle events
+- **Authentication**: Add authorization headers to requests for protected components
+- **Request customization**: Modify headers, credentials, or other fetch options
+- **Response inspection**: Log or validate responses before processing
+- **Performance monitoring**: Measure request/response timing for optimization

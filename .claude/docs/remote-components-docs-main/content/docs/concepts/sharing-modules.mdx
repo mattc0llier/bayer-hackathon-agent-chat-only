@@ -1,0 +1,84 @@
+---
+title: Sharing Modules
+description: Learn how to share React context and modules between host and remote components.
+---
+
+Users can specify modules to share between the host and remote component. React, React DOM, and Next.js are always shared by default.
+
+## Configuration
+
+To share a module, add it to the `shared` property of `withRemoteComponents` in both the host and remote:
+
+```jsx title="next.config.js"
+withRemoteComponents(withMicrofrontends(nextConfig), {
+  shared: ['@/shared/my-context-provider'],
+}),
+```
+
+The module name must exactly match between the host and remote components.
+
+## Sharing React Context
+
+In the case of [React Context](https://react.dev/learn/passing-data-deeply-with-context), both the host and remote must use the `Provider`.
+
+### Host Application
+
+```jsx
+import { MyContextProvider } from '@/shared/my-context-provider';
+
+<MyContextProvider>
+  <RemoteComponent src="/components/header" />
+</MyContextProvider>
+```
+
+### Remote Application
+
+```jsx
+import { MyContextProvider } from '@/shared/my-context-provider';
+
+// layout.tsx
+<MyContextProvider>{children}</MyContextProvider>
+
+// page.tsx
+<RemoteComponent>{/* your content */}</RemoteComponent>
+```
+
+### Using Context in Remote Components
+
+Then the context can be used in the remote client components:
+
+```jsx
+import { useMyContext } from '@/shared/my-context-provider';
+
+export function MyClientComponent() {
+  const { data } = useMyContext();
+  // ...
+}
+```
+
+## Mocking Shared Modules
+
+If using a provider defined locally in one application, the other (host/remote) must mock out the shared module with the same interface. This is necessary because the remote component can be developed and rendered independently, outside the host application.
+
+## Version Compatibility
+
+Remote Components only supports sharing the same exact module name. As long as the API contract for that module name stays the same, then the remote will be able to share the module from the host.
+
+However, if the versions differ in a breaking way such as different behavior or contract signature, then the Remote Components framework doesn't provide a way at the moment to target more specific versions to share. It is up to the developer to ensure that versions are compatible between the remotes and host.
+
+## What Can Be Shared
+
+You can share various types of modules:
+
+- **React Context**: Share state and data across host and remote
+- **Utility libraries**: Share common utility functions
+- **Type definitions**: Share TypeScript types (though these are compile-time only)
+- **Custom hooks**: Share React hooks between applications
+- **Component libraries**: Share UI component libraries
+
+## Best Practices
+
+1. **Keep interfaces stable**: Minimize breaking changes to shared modules
+2. **Version carefully**: Coordinate version updates between host and remote
+3. **Document contracts**: Clearly document the expected interface of shared modules
+4. **Test compatibility**: Test different versions of host and remote together

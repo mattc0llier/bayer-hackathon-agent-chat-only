@@ -1,0 +1,76 @@
+---
+title: FAQ
+description: Frequently asked questions about Remote Components.
+---
+
+## Supported Frameworks
+
+### What frameworks can expose remote components?
+
+- Next.js App Router
+- Next.js Pages Router
+- Static HTML
+
+### What frameworks can consume remote components?
+
+- Next.js App Router
+- Next.js Pages Router
+- React
+- HTML (no framework)
+
+## Usage Questions
+
+### Can I share `layout.tsx` among exposed Remote Components?
+
+The `<RemoteComponent>` component can be used anywhere, including in `layout.tsx` files. It will expose the HTML and React components for anything that is a child. If you wish to share some elements among multiple components, you can use a `layout.tsx` file and add the `<RemoteComponent>` element there, and everything in `layout.tsx` will be exposed in the remote component.
+
+### Why do I get different values from Next.js client side hooks?
+
+Hooks like `usePathname`, `useParams`, or `useSearchParams` allow client components to pull information from the incoming request. Next.js will attempt to server side render client components.
+
+When rendering on the server, a remote component is rendering in the **remote** application and the pathname, params, and search params will be equal to the path of the remote component. When the remote component is on the client, it uses the context from the **host** page and will equal the values from the browser URL bar.
+
+Therefore, you will get different values on the server and client for the same hook. Components should be robust against this.
+
+### Can I communicate or share data among the host and remote microfrontends?
+
+Data can be shared with multiple methods:
+
+- **React Context**: Can be shared - see [Sharing Modules](/docs/concepts/sharing-modules) for more details
+- **Local storage**: Works across microfrontends
+- **Cookies**: Can be shared between applications
+- **Server-side storage**: Database or cache solutions
+- **Custom events**: Use [custom events](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent) for pub/sub communication
+
+### How do portaled elements (dialog, etc.) with Shadow DOM work?
+
+When the Shadow DOM is used, portaled elements such as dialogs or dropdown menus will be attached to the **document body**, outside of the shadow DOM. This may cause issues with styling as it appears outside the Shadow DOM root.
+
+Most UI frameworks allow code to control which portal element is used (default is usually `document.body`). For example, [Radix supports modifying the portal element](https://www.radix-ui.com/primitives/docs/utilities/portal). This can be used to change the portaled element to within the shadow DOM root. This must be done by user code.
+
+### How do I pass props from host to the remote component?
+
+Props can be passed from the host application to the remote by serializing them into query parameters in the URL. The remote component would then pull the data from the query parameters. See [Passing Data Via Query Parameters](/docs/concepts/passing-data#passing-data-via-query-parameters) for more details.
+
+### Tailwind CSS doesn't apply all styles correctly when in the Shadow DOM?
+
+Tailwind by default only applies CSS variable definitions on `:root`, while Shadow DOM needs them applied to `:host` also. You may need to adjust your Tailwind configuration to support Shadow DOM properly.
+
+## Performance & Testing
+
+### How is version drift for dependencies handled?
+
+Remote Components only supports sharing the same exact module name. As long as the API contract for that module name stays the same, then the remote will be able to share the module from the host.
+
+However, if the versions differ in a breaking way such as different behavior or contract signature, then the Remote Components framework doesn't provide a way at the moment to target more specific versions to share. It is up to the developer to ensure that versions are compatible between the remotes and host.
+
+### How should remote components be tested?
+
+Since Remote Components are composed at runtime, it is important to test different versions of host and remotes for forwards and backwards compatibility.
+
+The Vercel Microfrontends [routing overrides](https://vercel.com/docs/microfrontends/managing-microfrontends/vercel-toolbar#routing-overrides) can be used to test that different old and new versions of the host and remote are compatible with each other. This should also be done in e2e tests in the host and remote.
+
+### What is the performance impact of Remote Components?
+
+- **Rendering**: At rendering time on the server or client, Remote Components follow the same rules as other Next.js applications and can be cached, ISR, or dynamic. The hosting application can also be cached, ISR, or dynamic. This allows both the host and remote to be efficiently rendered.
+- **Client-side**: Some extra bytes will be downloaded for JS + CSS + HTML. Some duplicate code (such as React or Next.js) will be downloaded at the moment, even if the modules are shared.

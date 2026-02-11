@@ -1,0 +1,77 @@
+---
+title: Next.js App Router
+description: Learn how to use Remote Components with Next.js App Router.
+---
+
+This guide shows you how to expose and consume remote components using Next.js App Router.
+
+## Exposing a Remote Component
+
+Create a page in your Next.js application that uses the `remote-components` package to expose a remote component:
+
+```jsx title="app/components/my-component/page.tsx"
+import { RemoteComponent } from 'remote-components/next';
+
+export default function Page() {
+  return (
+    <RemoteComponent>
+      <h2>Hello from my component!</h2>
+      <p>This is a remote component that can be used in other applications.</p>
+    </RemoteComponent>
+  );
+}
+```
+
+The `RemoteComponent` wrapper tells the framework that this page should be exposed as a consumable remote component.
+
+## Consuming a Remote Component
+
+Consume the Remote Component in another Next.js application:
+
+```tsx title="app/page.tsx"
+import { RemoteComponent } from 'remote-components/next';
+
+export default function Home() {
+  return (
+    <main>
+      <h1>Hello from my app!</h1>
+      <RemoteComponent src="/components/my-component" />
+    </main>
+  );
+}
+```
+
+The URL `/components/my-component` will be resolved to the Remote Component you created in the `components-app` with the Vercel Microfrontends proxy. You can also use absolute URLs to consume Remote Components from other applications or deployments.
+
+## Isomorphic Component
+
+The `RemoteComponent` component imported from `remote-components/next` is an isomorphic component, which works for both exposing and consuming a remote component, based on what props are used on the component:
+
+- **With `src` prop**: Consumes a remote component from the specified URL
+- **Without `src` prop**: Exposes a remote component on the page
+
+You can still directly use the `remote-components/next/remote` and `remote-components/next/host` imports to manually select whether to use the remote or the host side component.
+
+## Client Components
+
+When you want to consume a remote component from the client-side in a client component with `'use client'`, you can import the `RemoteComponent` from the `remote-components/next/host/client` module directly, or still use the isomorphic import as before:
+
+```tsx title="components/my-component.tsx"
+'use client';
+
+import { RemoteComponent } from 'remote-components/next';
+
+export default function MyComponent() {
+  return <RemoteComponent src="/components/my-component" />;
+}
+```
+
+You can update the `src` of the remote component at any time, and it will fetch and render the new component automatically.
+
+## What's Next?
+
+Now that you know how to use Remote Components with App Router, explore these concepts:
+
+- [CSS Isolation](/docs/concepts/css-isolation) - Control how CSS is scoped between host and remote
+- [Lifecycle Hooks](/docs/concepts/lifecycle-hooks) - React to component loading events
+- [Sharing Modules](/docs/concepts/sharing-modules) - Share React context and other modules between host and remote

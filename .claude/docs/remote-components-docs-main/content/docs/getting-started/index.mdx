@@ -1,0 +1,63 @@
+---
+title: Getting Started
+description: Learn how to install and set up Remote Components
+---
+
+To get started with Remote Components, first follow the [Vercel Microfrontends getting started guide](https://vercel.com/docs/microfrontends). This guide will walk you through the process of creating, deploying, and managing microfrontends at Vercel.
+
+## Installation
+
+Create a Next.js application using the App Router and install the `remote-components` and `@vercel/microfrontends` packages:
+
+```bash
+pnpm create next-app@latest --app --ts components-app
+cd components-app
+pnpm add @vercel/microfrontends remote-components
+```
+
+## Configuration
+
+Add `withRemoteComponents` to your `next.config.js` along with the `withMicrofrontends` wrapper. This should be added to **both** the host and remote component applications:
+
+```jsx title="next.config.js"
+import { withRemoteComponents } from 'remote-components/next/config';
+import { withMicrofrontends } from '@vercel/microfrontends/next/config';
+
+export default withRemoteComponents(
+  withMicrofrontends({
+    // your Next.js config
+  }),
+);
+```
+
+## Microfrontends Configuration
+
+Setup your `microfrontends.json` configuration to expose the Next.js application on `/my-component`. Your configuration should look similar to this:
+
+```json title="microfrontends.json"
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "host-app": {
+      "development": {
+        "fallback": "host-app.vercel.app"
+      }
+    },
+    "components-app": {
+      "routing": [
+        {
+          "paths": ["/components/:path*"]
+        }
+      ]
+    }
+  }
+}
+```
+
+## Next Steps
+
+Now that you have Remote Components installed and configured, choose your framework to learn how to expose and consume remote components:
+
+- [App Router](/docs/getting-started/app-router) - For Next.js App Router applications
+- [Pages Router](/docs/getting-started/pages-router) - For Next.js Pages Router applications
+- [HTML (No Framework)](/docs/getting-started/html) - For static HTML or non-React applications
