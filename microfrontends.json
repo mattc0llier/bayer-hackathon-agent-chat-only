@@ -2,9 +2,12 @@
   "$schema": "https://openapi.vercel.sh/microfrontends.json",
   "applications": {
     "ai-chatbot": {
+      "development": {
+        "fallback": "localhost:3006"
+      },
       "routing": [
         {
-          "paths": ["/components/chat"]
+          "paths": ["/components/:path*"]
         }
       ]
     }
