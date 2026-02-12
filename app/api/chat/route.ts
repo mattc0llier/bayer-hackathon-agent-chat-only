@@ -33,42 +33,37 @@ interface ChatContext {
   user: UserContext;
 }
 
-function buildSystemPrompt(context: ChatContext | null): string {
+function buildSystemPrompt(userContext: UserContext | null): string {
   let prompt =
     "You are a helpful assistant that can answer questions and help with tasks.";
 
-  if (context) {
-    const { user, page } = context;
-
-    if (user) {
-      prompt += `\n\n## Current User
-- Name: ${user.firstName} ${user.lastName}
-- Role: ${user.role}
-- Department: ${user.department}
-- Location: ${user.location}
-- Email: ${user.email}`;
-      if (user.team) {
-        prompt += `\n- Team: ${user.team}`;
-      }
+  if (userContext) {
+    prompt += `\n\n## Current User
+- Name: ${userContext.firstName} ${userContext.lastName}
+- Role: ${userContext.role}
+- Department: ${userContext.department}
+- Location: ${userContext.location}
+- Email: ${userContext.email}`;
+    if (userContext.team) {
+      prompt += `\n- Team: ${userContext.team}`;
     }
 
-    if (page) {
-      prompt += `\n\n## Current Page Context
-- Page: ${page.displayName || page.name}
-- Path: ${page.path}
-- Site: ${page.site}
-- Locale: ${page.locale}`;
-      if (page.title) {
-        prompt += `\n- Title: ${page.title}`;
-      }
-      prompt += `\n- Editing Mode: ${page.isEditing ? "Yes" : "No"}`;
-    }
-
-    prompt +=
-      "\n\nUse this context to provide personalized and relevant responses to the user.";
+    prompt += "\n\nUse this user context to provide personalized responses.";
   }
 
   return prompt;
+}
+
+function buildPageContextPrefix(page: PageContext): string {
+  let prefix = `[Context: Viewing "${page.displayName || page.name}"`;
+  if (page.path) {
+    prefix += ` at ${page.path}`;
+  }
+  if (page.title) {
+    prefix += ` - ${page.title}`;
+  }
+  prefix += "]\n\n";
+  return prefix;
 }
 
 export async function POST(req: Request) {
@@ -87,18 +82,29 @@ export async function POST(req: Request) {
   } = body;
 
   // Transform messages from parts format to content format
-  const transformedMessages = messages.map((message) => ({
-    role: message.role,
-    content: message.parts
+  // Inject page context into the latest user message if provided
+  const transformedMessages = messages.map((message, index) => {
+    let content = message.parts
       .filter((part) => part.type === "text")
       .map((part) => part.text)
-      .join("\n"),
-  }));
+      .join("\n");
+
+    // If this is the latest user message and page context exists, prepend it
+    if (
+      message.role === "user" &&
+      index === messages.length - 1 &&
+      context?.page
+    ) {
+      content = buildPageContextPrefix(context.page) + content;
+    }
+
+    return { role: message.role, content };
+  });
 
   const result = await streamText({
     model: webSearch ? "perplexity/sonar" : model,
     messages: transformedMessages,
-    system: buildSystemPrompt(context),
+    system: buildSystemPrompt(context?.user || null),
   });
   // send sources and reasoning back to the client
   return result.toUIMessageStreamResponse({

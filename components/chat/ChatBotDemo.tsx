@@ -36,6 +36,7 @@ import {
 import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useChatContext } from "@/shared/chat-context-provider";
+import { ContextPill } from "./ContextPill";
 import { CopyIcon, RefreshCcwIcon } from "lucide-react";
 import {
   Source,
@@ -109,6 +110,7 @@ export default function ChatBotDemo() {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [devMode, setDevMode] = useState(false);
+  const [includePageContext, setIncludePageContext] = useState(true);
   const { messages, sendMessage, status, regenerate } = useChat();
   const chatContext = useChatContext();
 
@@ -118,6 +120,11 @@ export default function ChatBotDemo() {
     console.log("[ChatBotDemo] Page context:", chatContext?.page);
     console.log("[ChatBotDemo] User context:", chatContext?.user);
   }, [chatContext]);
+
+  // Reset page context inclusion when navigating to a new page
+  useEffect(() => {
+    setIncludePageContext(true);
+  }, [chatContext?.page?.itemId]);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -133,11 +140,16 @@ export default function ChatBotDemo() {
       {
         body: {
           model: model,
-          context: chatContext,
+          context: {
+            user: chatContext?.user || null,
+            page: includePageContext ? chatContext?.page : null,
+          },
         },
       },
     );
     setInput("");
+    // Reset page context inclusion for next message
+    setIncludePageContext(true);
   };
 
   return (
@@ -254,6 +266,12 @@ export default function ChatBotDemo() {
           multiple
         >
           <PromptInputHeader>
+            {includePageContext && chatContext?.page && (
+              <ContextPill
+                title={chatContext.page.displayName || chatContext.page.name}
+                onRemove={() => setIncludePageContext(false)}
+              />
+            )}
             <PromptInputAttachments>
               {(attachment) => <PromptInputAttachment data={attachment} />}
             </PromptInputAttachments>
