@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from "react";
 
 interface PageContext {
   itemId: string;
@@ -12,6 +12,9 @@ interface PageContext {
   title?: string;
   isEditing: boolean;
   timestamp: number;
+  contentType?: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface UserContext {
@@ -27,16 +30,22 @@ interface UserContext {
   team?: string;
 }
 
+interface ChatActions {
+  setSidebarOpen: (open: boolean) => void;
+  toggleSidebar: () => void;
+}
+
 export interface ChatContext {
   page: PageContext;
   user: UserContext;
+  actions?: ChatActions;
 }
 
 const ChatContextContext = createContext<ChatContext | null>(null);
 
 export function ChatContextProvider({
   children,
-  value
+  value,
 }: {
   children: ReactNode;
   value: ChatContext | null;

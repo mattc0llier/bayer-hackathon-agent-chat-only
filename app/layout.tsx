@@ -43,6 +43,10 @@ const mockContext: ChatContext = {
     location: "Local",
     email: "dev@example.com",
   },
+  actions: {
+    setSidebarOpen: (open) => console.log("[Mock] setSidebarOpen:", open),
+    toggleSidebar: () => console.log("[Mock] toggleSidebar"),
+  },
 };
 
 export default function RootLayout({

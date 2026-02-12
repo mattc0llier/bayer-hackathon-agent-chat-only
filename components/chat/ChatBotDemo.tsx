@@ -20,7 +20,6 @@ import {
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
-  PromptInputButton,
   PromptInputHeader,
   type PromptInputMessage,
   PromptInputSelect,
@@ -37,7 +36,7 @@ import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useChatContext } from "@/shared/chat-context-provider";
 import { ContextPill } from "./ContextPill";
-import { CopyIcon, RefreshCcwIcon } from "lucide-react";
+import { CopyIcon, RefreshCcwIcon, XIcon } from "lucide-react";
 import {
   Source,
   Sources,
@@ -50,13 +49,6 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Loader } from "@/components/ai-elements/loader";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@/components/ai-elements/tool";
 
 const models = [
   // Default Model
@@ -109,7 +101,6 @@ const models = [
 export default function ChatBotDemo() {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
-  const [devMode, setDevMode] = useState(false);
   const [includePageContext, setIncludePageContext] = useState(true);
   const { messages, sendMessage, status, regenerate } = useChat();
   const chatContext = useChatContext();
@@ -158,6 +149,18 @@ export default function ChatBotDemo() {
       style={{ backgroundColor: "#ffffff" }}
     >
       <div className="flex flex-col h-full">
+        {/* Header with close button */}
+        {chatContext?.actions && (
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => chatContext.actions?.setSidebarOpen(false)}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              aria-label="Close chat"
+            >
+              <XIcon className="size-5 text-muted-foreground" />
+            </button>
+          </div>
+        )}
         <Conversation className="h-full">
           <ConversationContent>
             {messages.map((message) => (
@@ -232,23 +235,7 @@ export default function ChatBotDemo() {
                       );
                     case "tool-call":
                     case "tool-invocation":
-                      if (!devMode) return null;
-                      return (
-                        <Tool key={`${message.id}-${i}`}>
-                          <ToolHeader
-                            title={part.toolName}
-                            type="tool-call"
-                            state="output-available"
-                          />
-                          <ToolContent>
-                            <ToolInput input={part.args} />
-                            <ToolOutput
-                              output={part.result}
-                              errorText={part.error}
-                            />
-                          </ToolContent>
-                        </Tool>
-                      );
+                      return null;
                     default:
                       return null;
                   }
@@ -290,13 +277,7 @@ export default function ChatBotDemo() {
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
-              <PromptInputButton
-                variant={devMode ? "default" : "ghost"}
-                onClick={() => setDevMode(!devMode)}
-                size="sm"
-              >
-                Dev
-              </PromptInputButton>
+
               <PromptInputSelect
                 onValueChange={(value) => {
                   setModel(value);
