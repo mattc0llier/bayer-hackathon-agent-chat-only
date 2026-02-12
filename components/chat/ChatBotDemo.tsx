@@ -1,16 +1,16 @@
-'use client';
+"use client";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
+} from "@/components/ai-elements/conversation";
 import {
   Message,
   MessageContent,
   MessageResponse,
   MessageActions,
   MessageAction,
-} from '@/components/ai-elements/message';
+} from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -32,83 +32,92 @@ import {
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputTools,
-} from '@/components/ai-elements/prompt-input';
-import { useState } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { CopyIcon, RefreshCcwIcon } from 'lucide-react';
+} from "@/components/ai-elements/prompt-input";
+import { useState, useEffect } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useChatContext } from "@/shared/chat-context-provider";
+import { CopyIcon, RefreshCcwIcon } from "lucide-react";
 import {
   Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
-} from '@/components/ai-elements/sources';
+} from "@/components/ai-elements/sources";
 import {
   Reasoning,
   ReasoningContent,
   ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Loader } from '@/components/ai-elements/loader';
+} from "@/components/ai-elements/reasoning";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   Tool,
   ToolContent,
   ToolHeader,
   ToolInput,
   ToolOutput,
-} from '@/components/ai-elements/tool';
+} from "@/components/ai-elements/tool";
 
 const models = [
   // Default Model
   {
-    name: 'Gemini 2.5 Flash Lite (Default)',
-    value: 'google/gemini-2.5-flash-lite',
+    name: "Gemini 2.5 Flash Lite (Default)",
+    value: "google/gemini-2.5-flash-lite",
   },
   // Anthropic Models
   {
-    name: 'Claude Haiku 4.5',
-    value: 'anthropic/claude-haiku-4.5',
+    name: "Claude Haiku 4.5",
+    value: "anthropic/claude-haiku-4.5",
   },
   {
-    name: 'Claude Sonnet 4.5',
-    value: 'anthropic/claude-sonnet-4.5',
+    name: "Claude Sonnet 4.5",
+    value: "anthropic/claude-sonnet-4.5",
   },
   {
-    name: 'Claude Opus 4.5',
-    value: 'anthropic/claude-opus-4.5',
+    name: "Claude Opus 4.5",
+    value: "anthropic/claude-opus-4.5",
   },
   {
-    name: 'Claude 3.7 Sonnet Thinking',
-    value: 'anthropic/claude-3.7-sonnet-thinking',
+    name: "Claude 3.7 Sonnet Thinking",
+    value: "anthropic/claude-3.7-sonnet-thinking",
   },
   // OpenAI Models
   {
-    name: 'GPT 4.1 Mini',
-    value: 'openai/gpt-4.1-mini',
+    name: "GPT 4.1 Mini",
+    value: "openai/gpt-4.1-mini",
   },
   {
-    name: 'GPT 5.2',
-    value: 'openai/gpt-5.2',
+    name: "GPT 5.2",
+    value: "openai/gpt-5.2",
   },
   // Google Models
   {
-    name: 'Gemini 3 Pro Preview',
-    value: 'google/gemini-3-pro-preview',
+    name: "Gemini 3 Pro Preview",
+    value: "google/gemini-3-pro-preview",
   },
   // xAI Models
   {
-    name: 'Grok 4.1 Fast Non-Reasoning',
-    value: 'xai/grok-4.1-fast-non-reasoning',
+    name: "Grok 4.1 Fast Non-Reasoning",
+    value: "xai/grok-4.1-fast-non-reasoning",
   },
   {
-    name: 'Grok Code Fast 1 Thinking',
-    value: 'xai/grok-code-fast-1-thinking',
+    name: "Grok Code Fast 1 Thinking",
+    value: "xai/grok-code-fast-1-thinking",
   },
 ];
 
 export default function ChatBotDemo() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [devMode, setDevMode] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
+  const chatContext = useChatContext();
+
+  // Debug: Log context on mount and whenever it changes
+  useEffect(() => {
+    console.log("[ChatBotDemo] Context received:", chatContext);
+    console.log("[ChatBotDemo] Page context:", chatContext?.page);
+    console.log("[ChatBotDemo] User context:", chatContext?.user);
+  }, [chatContext]);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -118,88 +127,99 @@ export default function ChatBotDemo() {
     }
     sendMessage(
       {
-        text: message.text || 'Sent with attachments',
-        files: message.files
+        text: message.text || "Sent with attachments",
+        files: message.files,
       },
       {
         body: {
           model: model,
+          context: chatContext,
         },
       },
     );
-    setInput('');
+    setInput("");
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-screen" style={{ backgroundColor: '#ffffff' }}>
+    <div
+      className="max-w-4xl mx-auto p-6 relative size-full h-screen"
+      style={{ backgroundColor: "#ffffff" }}
+    >
       <div className="flex flex-col h-full">
         <Conversation className="h-full">
           <ConversationContent>
             {messages.map((message) => (
               <div key={message.id}>
-                {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
-                    />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
-                        />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
+                {message.role === "assistant" &&
+                  message.parts.filter((part) => part.type === "source-url")
+                    .length > 0 && (
+                    <Sources>
+                      <SourcesTrigger
+                        count={
+                          message.parts.filter(
+                            (part) => part.type === "source-url",
+                          ).length
+                        }
+                      />
+                      {message.parts
+                        .filter((part) => part.type === "source-url")
+                        .map((part, i) => (
+                          <SourcesContent key={`${message.id}-${i}`}>
+                            <Source
+                              key={`${message.id}-${i}`}
+                              href={part.url}
+                              title={part.url}
+                            />
+                          </SourcesContent>
+                        ))}
+                    </Sources>
+                  )}
                 {message.parts.map((part, i) => {
                   switch (part.type) {
-                    case 'text':
+                    case "text":
                       return (
                         <Message key={`${message.id}-${i}`} from={message.role}>
                           <MessageContent>
-                            <MessageResponse>
-                              {part.text}
-                            </MessageResponse>
+                            <MessageResponse>{part.text}</MessageResponse>
                           </MessageContent>
-                          {message.role === 'assistant' && i === messages.length - 1 && (
-                            <MessageActions>
-                              <MessageAction
-                                onClick={() => regenerate()}
-                                label="Retry"
-                              >
-                                <RefreshCcwIcon className="size-3" />
-                              </MessageAction>
-                              <MessageAction
-                                onClick={() =>
-                                  navigator.clipboard.writeText(part.text)
-                                }
-                                label="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </MessageAction>
-                            </MessageActions>
-                          )}
+                          {message.role === "assistant" &&
+                            i === messages.length - 1 && (
+                              <MessageActions>
+                                <MessageAction
+                                  onClick={() => regenerate()}
+                                  label="Retry"
+                                >
+                                  <RefreshCcwIcon className="size-3" />
+                                </MessageAction>
+                                <MessageAction
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(part.text)
+                                  }
+                                  label="Copy"
+                                >
+                                  <CopyIcon className="size-3" />
+                                </MessageAction>
+                              </MessageActions>
+                            )}
                         </Message>
                       );
-                    case 'reasoning':
+                    case "reasoning":
                       return (
                         <Reasoning
                           key={`${message.id}-${i}`}
                           className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                          isStreaming={
+                            status === "streaming" &&
+                            i === message.parts.length - 1 &&
+                            message.id === messages.at(-1)?.id
+                          }
                         >
                           <ReasoningTrigger />
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
-                    case 'tool-call':
-                    case 'tool-invocation':
+                    case "tool-call":
+                    case "tool-invocation":
                       if (!devMode) return null;
                       return (
                         <Tool key={`${message.id}-${i}`}>
@@ -210,7 +230,10 @@ export default function ChatBotDemo() {
                           />
                           <ToolContent>
                             <ToolInput input={part.args} />
-                            <ToolOutput output={part.result} errorText={part.error} />
+                            <ToolOutput
+                              output={part.result}
+                              errorText={part.error}
+                            />
                           </ToolContent>
                         </Tool>
                       );
@@ -220,11 +243,16 @@ export default function ChatBotDemo() {
                 })}
               </div>
             ))}
-            {status === 'submitted' && <Loader />}
+            {status === "submitted" && <Loader />}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
-        <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
+        <PromptInput
+          onSubmit={handleSubmit}
+          className="mt-4"
+          globalDrop
+          multiple
+        >
           <PromptInputHeader>
             <PromptInputAttachments>
               {(attachment) => <PromptInputAttachment data={attachment} />}
@@ -245,7 +273,7 @@ export default function ChatBotDemo() {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
               <PromptInputButton
-                variant={devMode ? 'default' : 'ghost'}
+                variant={devMode ? "default" : "ghost"}
                 onClick={() => setDevMode(!devMode)}
                 size="sm"
               >
@@ -262,7 +290,10 @@ export default function ChatBotDemo() {
                 </PromptInputSelectTrigger>
                 <PromptInputSelectContent>
                   {models.map((model) => (
-                    <PromptInputSelectItem key={model.value} value={model.value}>
+                    <PromptInputSelectItem
+                      key={model.value}
+                      value={model.value}
+                    >
                       {model.name}
                     </PromptInputSelectItem>
                   ))}

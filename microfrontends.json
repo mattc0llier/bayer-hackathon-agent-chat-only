@@ -4,12 +4,7 @@
     "ai-chatbot": {
       "development": {
         "fallback": "localhost:3006"
-      },
-      "routing": [
-        {
-          "paths": ["/components/:path*"]
-        }
-      ]
+      }
     }
   }
 }
