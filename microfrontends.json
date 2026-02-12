@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/microfrontends.json",
   "applications": {
-    "ai-chatbot": {
+    "bayer-hackathon-agent-chat-only": {
+      "packageName": "ai-chatbot",
       "development": {
         "fallback": "localhost:3006"
       }
