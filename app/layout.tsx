@@ -22,6 +22,9 @@ export const metadata: Metadata = {
 };
 
 // Mock context for standalone development
+// Note: actions are not included here because functions cannot be passed
+// from Server Components to Client Components. When loaded via host app,
+// the host provides the actions through the shared context.
 const mockContext: ChatContext = {
   page: {
     itemId: "standalone",
@@ -42,10 +45,6 @@ const mockContext: ChatContext = {
     department: "Engineering",
     location: "Local",
     email: "dev@example.com",
-  },
-  actions: {
-    setSidebarOpen: (open) => console.log("[Mock] setSidebarOpen:", open),
-    toggleSidebar: () => console.log("[Mock] toggleSidebar"),
   },
 };
 
