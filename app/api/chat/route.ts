@@ -3,6 +3,21 @@ import { streamText, UIMessage, convertToModelMessages } from "ai";
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
+// CORS headers for cross-origin requests from host apps
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// Handle OPTIONS preflight request
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 interface PageContext {
   itemId: string;
   name: string;
@@ -106,9 +121,17 @@ export async function POST(req: Request) {
     messages: transformedMessages,
     system: buildSystemPrompt(context?.user || null),
   });
+
   // send sources and reasoning back to the client
-  return result.toUIMessageStreamResponse({
+  const response = result.toUIMessageStreamResponse({
     sendSources: true,
     sendReasoning: true,
   });
+
+  // Add CORS headers to the response
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
 }
