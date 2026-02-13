@@ -102,7 +102,12 @@ export default function ChatBotDemo() {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [includePageContext, setIncludePageContext] = useState(true);
-  const { messages, sendMessage, status, regenerate } = useChat();
+  // Use environment variable for API URL to ensure calls go to the remote chat app
+  // In production, set NEXT_PUBLIC_CHAT_API_URL to the deployed remote app URL
+  const chatApiUrl = process.env.NEXT_PUBLIC_CHAT_API_URL || "/api/chat";
+  const { messages, sendMessage, status, regenerate } = useChat({
+    api: chatApiUrl,
+  });
   const chatContext = useChatContext();
 
   // Debug: Log context on mount and whenever it changes
