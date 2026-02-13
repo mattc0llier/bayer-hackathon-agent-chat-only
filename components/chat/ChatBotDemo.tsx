@@ -32,8 +32,9 @@ import {
   PromptInputFooter,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useChatContext } from "@/shared/chat-context-provider";
 import { ContextPill } from "./ContextPill";
 import { CopyIcon, RefreshCcwIcon, XIcon } from "lucide-react";
@@ -105,9 +106,11 @@ export default function ChatBotDemo() {
   // Use environment variable for API URL to ensure calls go to the remote chat app
   // In production, set NEXT_PUBLIC_CHAT_API_URL to the deployed remote app URL
   const chatApiUrl = process.env.NEXT_PUBLIC_CHAT_API_URL || "/api/chat";
-  const { messages, sendMessage, status, regenerate } = useChat({
-    api: chatApiUrl,
-  });
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: chatApiUrl }),
+    [chatApiUrl],
+  );
+  const { messages, sendMessage, status, regenerate } = useChat({ transport });
   const chatContext = useChatContext();
 
   // Debug: Log context on mount and whenever it changes
