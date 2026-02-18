@@ -43,12 +43,30 @@ interface UserContext {
   team?: string;
 }
 
+interface NavigationContext {
+  sitemap: Array<{
+    path: string;
+    title?: string;
+    lastModified?: string;
+    changeFrequency?: string;
+    priority?: number;
+    locale?: string;
+  }>;
+  currentPath: string;
+  locale: string;
+  siteName: string;
+}
+
 interface ChatContext {
   page: PageContext;
   user: UserContext;
+  navigation?: NavigationContext;
 }
 
-function buildSystemPrompt(userContext: UserContext | null): string {
+function buildSystemPrompt(
+  userContext: UserContext | null,
+  navigationContext: NavigationContext | null,
+): string {
   let prompt =
     "You are a helpful assistant that can answer questions and help with tasks.";
 
@@ -64,6 +82,46 @@ function buildSystemPrompt(userContext: UserContext | null): string {
     }
 
     prompt += "\n\nUse this user context to provide personalized responses.";
+  }
+
+  // Add navigation context
+  if (navigationContext && navigationContext.sitemap.length > 0) {
+    prompt += `\n\n## Navigation Context
+
+**Current Site:** ${navigationContext.siteName}
+**Locale:** ${navigationContext.locale}
+**Current Page:** ${navigationContext.currentPath}
+
+**Available Pages:**
+`;
+
+    // Format sitemap for AI (limit to avoid token bloat)
+    const maxPages = 50; // Adjust based on token budget
+    const pages = navigationContext.sitemap.slice(0, maxPages);
+
+    pages.forEach((entry) => {
+      const title = entry.title || entry.path;
+      prompt += `- ${title} (${entry.path})`;
+      if (entry.priority) {
+        prompt += ` [Priority: ${entry.priority}]`;
+      }
+      prompt += "\n";
+    });
+
+    if (navigationContext.sitemap.length > maxPages) {
+      prompt += `\n... and ${navigationContext.sitemap.length - maxPages} more pages.\n`;
+    }
+
+    prompt += `\n**Navigation Instructions:**
+- When recommending pages, use markdown links: [Page Title](path)
+- Example: [News Dashboard](/news)
+- Users can click these links to navigate
+- Always use absolute paths starting with /
+- Validate that paths exist in the sitemap before suggesting them
+- DO NOT use asterisks (*) or other formatting around navigation links
+- Present links naturally in sentences without extra symbols
+- Example: "You can visit [Home](/) or check [News Dashboard](/news)" (not "* Visit [Home](/) * Check [News Dashboard](/news)")
+`;
   }
 
   return prompt;
@@ -119,7 +177,10 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: webSearch ? "perplexity/sonar" : model,
     messages: transformedMessages,
-    system: buildSystemPrompt(context?.user || null),
+    system: buildSystemPrompt(
+      context?.user || null,
+      context?.navigation || null,
+    ),
   });
 
   // send sources and reasoning back to the client

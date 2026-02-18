@@ -37,6 +37,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useChatContext } from "@/shared/chat-context-provider";
 import { ContextPill } from "./ContextPill";
+import { MessageRenderer } from "./MessageRenderer";
 import { CopyIcon, RefreshCcwIcon, XIcon } from "lucide-react";
 import {
   Source,
@@ -142,6 +143,7 @@ export default function ChatBotDemo() {
           context: {
             user: chatContext?.user || null,
             page: includePageContext ? chatContext?.page : null,
+            navigation: chatContext?.navigation || null,
           },
         },
       },
@@ -202,28 +204,35 @@ export default function ChatBotDemo() {
                     case "text":
                       return (
                         <Message key={`${message.id}-${i}`} from={message.role}>
-                          <MessageContent>
-                            <MessageResponse>{part.text}</MessageResponse>
-                          </MessageContent>
-                          {message.role === "assistant" &&
-                            i === messages.length - 1 && (
-                              <MessageActions>
-                                <MessageAction
-                                  onClick={() => regenerate()}
-                                  label="Retry"
-                                >
-                                  <RefreshCcwIcon className="size-3" />
-                                </MessageAction>
-                                <MessageAction
-                                  onClick={() =>
-                                    navigator.clipboard.writeText(part.text)
-                                  }
-                                  label="Copy"
-                                >
-                                  <CopyIcon className="size-3" />
-                                </MessageAction>
-                              </MessageActions>
-                            )}
+                          {message.role === "assistant" ? (
+                            <>
+                              <MessageContent>
+                                <MessageRenderer content={part.text} />
+                              </MessageContent>
+                              {i === messages.length - 1 && (
+                                <MessageActions>
+                                  <MessageAction
+                                    onClick={() => regenerate()}
+                                    label="Retry"
+                                  >
+                                    <RefreshCcwIcon className="size-3" />
+                                  </MessageAction>
+                                  <MessageAction
+                                    onClick={() =>
+                                      navigator.clipboard.writeText(part.text)
+                                    }
+                                    label="Copy"
+                                  >
+                                    <CopyIcon className="size-3" />
+                                  </MessageAction>
+                                </MessageActions>
+                              )}
+                            </>
+                          ) : (
+                            <MessageContent>
+                              <MessageResponse>{part.text}</MessageResponse>
+                            </MessageContent>
+                          )}
                         </Message>
                       );
                     case "reasoning":

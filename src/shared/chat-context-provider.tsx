@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { NavigationContext } from "@/types/sitemap";
 
 interface PageContext {
   itemId: string;
@@ -33,11 +34,13 @@ interface UserContext {
 interface ChatActions {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  navigate: (path: string) => void;
 }
 
 export interface ChatContext {
   page: PageContext;
   user: UserContext;
+  navigation?: NavigationContext;
   actions?: ChatActions;
 }
 
